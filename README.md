@@ -4,8 +4,11 @@ This project involves developing a real-time gesture detection and classificatio
 
 We will be using [fernandozamoraj's Space Invaders](https://github.com/fernandozamoraj/processing_sandbox/tree/master/SpaceInvaders) game. We will add our real-time gesture detection model as the main input for the player's movement. 
 
-How to play:
+## How to play:##
 
-1. Point right: player will move right
-2. Point left: player will move left
-3. 
+1. **Move left**: pointing left
+2. **Move right**: point right
+3. **Shoot bullets**: point up
+
+   
+   
