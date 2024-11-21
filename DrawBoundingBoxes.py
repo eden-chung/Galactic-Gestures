@@ -2,8 +2,10 @@ import cv2
 import csv
 import os
 from PIL import Image
-import pillow_heif # To convert HEIC to JPG
+import pillow_heif  # To convert HEIC to JPG
 import time
+import signal
+import sys
 
 annotations = []
 drawing = False
@@ -11,8 +13,8 @@ x_start, y_start = 0, 0
 current_annotation = None
 
 # TODO: MODIFY THIS PART HERE
-image_folder = 'right_shoot' #MODIFY THIS
-current_class = 'right_shoot' # MODIFY THIS
+image_folder = 'right_shoot'  # MODIFY THIS
+current_class = 'right_shoot'  # MODIFY THIS
 label_mapping = {
     'left': 0,
     'left_shoot': 1,
@@ -22,8 +24,24 @@ label_mapping = {
 }
 current_class_number = label_mapping[current_class]
 
+output_csv = os.path.join(image_folder, 'annotations.csv')
+
+with open(output_csv, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(['image_path', 'x_start', 'y_start', 'x_end', 'y_end', 'class_label'])
+
+# Still save to CSV in case we hit control C and exit
+def handle_exit(signal, frame):
+    with open(output_csv, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(annotations)
+    print(f"Annotations have been saved to {output_csv}")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_exit)
+
 # Function to draw the bounding boxes
-def draw_box(event, x, y, flags, param):
+def draw_box(event, x, y):
     global x_start, y_start, drawing, current_annotation, image, original_image
 
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -34,11 +52,11 @@ def draw_box(event, x, y, flags, param):
         x_end, y_end = x, y
         drawing = False
         class_label = current_class_number
-        
-        # Overwrite w the new annotatino
+
+        # Overwrite with the new annotation
         current_annotation = (current_image_path, x_start, y_start, x_end, y_end, class_label)
-        
-        # Draw a new rectangle which overwrides previous one
+
+        # Draw a new rectangle which overwrites the previous one
         image = original_image.copy()
         cv2.rectangle(image, (x_start, y_start), (x_end, y_end), (255, 0, 0), 2)
         cv2.imshow('Image', image)
@@ -52,9 +70,8 @@ def convert_heic_to_jpg(heic_path):
     image = image.convert("RGB")
     jpg_path = os.path.splitext(heic_path)[0] + ".jpg"
     image.save(jpg_path, format="JPEG", quality=95)
-    time.sleep(0.1) # wait for system to finish creating the new file
+    time.sleep(0.1)  # wait for system to finish creating the new file
     return jpg_path
-
 
 supported_formats = ['.jpg', '.jpeg', '.png', '.heic']
 files = [f for f in os.listdir(image_folder) if os.path.splitext(f)[1].lower() in supported_formats]
@@ -100,25 +117,23 @@ for file in files:
     while True:
         cv2.imshow('Image', image)
         key = cv2.waitKey(1) & 0xFF
-        
-        if key == ord('q'): # q to quit
+
+        if key == ord('q'):  # q to quit
             print("pressed q")
-            exit()
+            handle_exit(None, None) # Save annotations and exit
         elif key == 13 or key == 10: # Enter key to go to next image
             print("pressed enter")
             if current_annotation:
                 annotations.append(current_annotation) # Save only the latest box
                 print(f"Saved annotation: {current_annotation}")
+
+                # Add to the CSV
+                with open(output_csv, mode='a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow(current_annotation)
+
             break
 
     cv2.destroyAllWindows()
-
-# Save annotations to CSV
-output_csv = os.path.join(image_folder, 'annotations.csv')
-with open(output_csv, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['image_path', 'x_start', 'y_start', 'x_end', 'y_end', 'class_label'])
-    for annotation in annotations:
-        writer.writerow(annotation)
 
 print(f"Annotations saved to {output_csv}")
