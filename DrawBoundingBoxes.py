@@ -13,7 +13,7 @@ x_start, y_start = 0, 0
 current_annotation = None
 
 # TODO: MODIFY THIS PART HERE
-image_folder = 'right_shoot'  # MODIFY THIS
+image_folder = 'right_shoot_heics'  # MODIFY THIS
 current_class = 'right_shoot'  # MODIFY THIS
 label_mapping = {
     'left': 0,
@@ -41,7 +41,7 @@ def handle_exit(signal, frame):
 signal.signal(signal.SIGINT, handle_exit)
 
 # Function to draw the bounding boxes
-def draw_box(event, x, y):
+def draw_box(event, x, y, flags, param):
     global x_start, y_start, drawing, current_annotation, image, original_image
 
     if event == cv2.EVENT_LBUTTONDOWN:
