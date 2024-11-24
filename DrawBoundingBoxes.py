@@ -13,8 +13,8 @@ x_start, y_start = 0, 0
 current_annotation = None
 
 # TODO: MODIFY THIS PART HERE
-image_folder = 'right_shoot'  # MODIFY THIS
-current_class = 'right_shoot'  # MODIFY THIS
+image_folder = 'new_left'  # MODIFY THIS
+current_class = 'left_shoot'  # MODIFY THIS
 label_mapping = {
     'left': 0,
     'left_shoot': 1,
