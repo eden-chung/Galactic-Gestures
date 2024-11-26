@@ -5,3 +5,6 @@ pillow-heif
 torch
 torchvision
 matplotlib
+ultralytics
+albumentations
+matplotlib
