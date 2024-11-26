@@ -26,10 +26,10 @@ def set_seed(seed=42):
 # Constants
 INPUT_SIZE = 224  # Input size for MobileNet V3 Large
 BATCH_SIZE = 32
-NUM_CLASSES = 300
-EPOCHS = 5  # Increased epochs to allow for better visualization
+NUM_CLASSES = 5
+EPOCHS = 300  # Increased epochs to allow for better visualization
 LEARNING_RATE = 0.001
-MODEL_SAVE_PATH = 'test_model_v3_graphs_t1.pth'
+MODEL_SAVE_PATH = 'mn_v3_train_graph_t2.pth'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Augmentations for training
