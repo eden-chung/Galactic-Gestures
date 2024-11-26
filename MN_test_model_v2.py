@@ -21,14 +21,13 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 
-# Import the GestureDataset from your separate module
 from gesture_dataset import GestureDataset
 
 # Constants
 INPUT_SIZE = 224
 BATCH_SIZE = 32
 NUM_CLASSES = 5
-MODEL_SAVE_PATH = 'V2_30epoch.pth'  # Ensure this matches the saved model
+MODEL_SAVE_PATH = 'V2_30epoch.pth' 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Data transformations
@@ -60,18 +59,15 @@ def filter_invalid_annotations(dataset):
     return dataset
 
 if __name__ == '__main__':
-    # Load test annotations
     test_annotations = pd.read_csv('test_annotations.csv')
     test_annotations['class_label'] = test_annotations['class_label'].astype(int)
 
-    # Create test dataset
     test_dataset = GestureDataset(
         annotations=test_annotations,
         root_dir='.',
         transform=transform  # No augmentations for testing
     )
 
-    # Filter invalid annotations
     test_dataset = filter_invalid_annotations(test_dataset)
 
     # Create DataLoader for the test dataset
@@ -94,7 +90,6 @@ if __name__ == '__main__':
     class_correct = [0] * NUM_CLASSES
     class_total = [0] * NUM_CLASSES
 
-    # Testing loop
     with torch.no_grad():
         for images, labels in test_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
@@ -108,28 +103,23 @@ if __name__ == '__main__':
             all_predictions.extend(predicted.cpu().numpy())
             all_probabilities.extend(probabilities.cpu().numpy())
 
-            # Per-class accuracy
             c = (predicted == labels).squeeze()
             for i in range(len(labels)):
                 label = labels[i].item()
                 class_correct[label] += c[i].item()
                 class_total[label] += 1
 
-    # Calculate overall test loss
     test_loss = sum(all_losses) / len(test_dataset)
     print(f"Test Loss: {test_loss:.4f}")
 
-    # Calculate overall accuracy
     accuracy = accuracy_score(all_labels, all_predictions)
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-    # Classification report
     class_names = [f"Class {i}" for i in range(NUM_CLASSES)]
     report = classification_report(all_labels, all_predictions, target_names=class_names, output_dict=True)
     print("\nClassification Report:")
     print(classification_report(all_labels, all_predictions, target_names=class_names))
 
-    # Overall precision, recall, F1 score
     overall_precision = report['weighted avg']['precision']
     overall_recall = report['weighted avg']['recall']
     overall_f1 = report['weighted avg']['f1-score']
@@ -230,15 +220,12 @@ if __name__ == '__main__':
     else:
         print(f"{class_names_to_compare[0]} and {class_names_to_compare[1]} have the same accuracy")
 
-    # Binarize the labels for multi-label precision-recall curves
     y_test_binarized = label_binarize(all_labels, classes=range(NUM_CLASSES))
     y_score = np.array(all_probabilities)
 
-    # Compute micro-average Precision-Recall curve and average precision
     precision_micro, recall_micro, _ = precision_recall_curve(y_test_binarized.ravel(), y_score.ravel())
     average_precision_micro = average_precision_score(y_test_binarized, y_score, average='micro')
 
-    # Plot micro-average Precision-Recall curve
     plt.figure()
     plt.plot(recall_micro, precision_micro, label='Micro-average PR curve (AP={0:0.2f})'.format(average_precision_micro))
     plt.xlabel('Recall')
@@ -248,7 +235,6 @@ if __name__ == '__main__':
     plt.savefig('PR_curve.png')
     plt.close()
 
-    # Optionally, plot Precision-Recall curve for each class
     for i in range(NUM_CLASSES):
         precision_i, recall_i, _ = precision_recall_curve(y_test_binarized[:, i], y_score[:, i])
         average_precision_i = average_precision_score(y_test_binarized[:, i], y_score[:, i])
@@ -292,7 +278,7 @@ if __name__ == '__main__':
 
     # Get first two batches from test_loader
     dataiter = iter(test_loader)
-    for batch_idx in range(2):  # Save two batches
+    for batch_idx in range(2):  
         images, labels = next(dataiter)
         images, labels = images.to(DEVICE), labels.to(DEVICE)
         outputs = model(images)
@@ -302,7 +288,6 @@ if __name__ == '__main__':
         # Save images with predicted labels
         save_batch_images(images, labels, predicted, batch_idx, 'pred')
 
-    # Plot Test Loss (since it's a single value, we can create a bar chart)
     plt.figure()
     plt.bar(['Test Loss'], [test_loss])
     plt.ylabel('Loss')
