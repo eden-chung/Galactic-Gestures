@@ -1,17 +1,22 @@
 from ultralytics import YOLO
+import torch
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f"Using device: {device}")
 
 # Configuration
 data_yaml = 'data.yaml'
-model_weights = 'yolov5s.pt'
-img_size = 224
+model_weights = 'yolov5x.pt'
+img_size = 640
 batch_size = 32
 epochs = 100
 early_stopping_patience = 10
-project_dir = 'runs1/train'
+project_dir = 'runs_large/train'
 experiment_name = 'yolo'
 
 # Load the pre trained YOLO model
 model = YOLO(model_weights)
+model.to(device)
 
 # Train with early stopping
 results = model.train(
@@ -22,6 +27,9 @@ results = model.train(
     patience=early_stopping_patience,
     project=project_dir,
     name=experiment_name,
-    exist_ok=True
+    exist_ok=True,
+    augment=True,
+    lrf=0.01,
+    device = device,
 )
 
