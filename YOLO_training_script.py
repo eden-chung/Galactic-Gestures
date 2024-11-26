@@ -8,7 +8,7 @@ print(f"Using device: {device}")
 data_yaml = 'data.yaml'
 model_weights = 'yolov5x.pt'
 img_size = 640
-batch_size = 32
+batch_size = 16
 epochs = 100
 early_stopping_patience = 10
 project_dir = 'runs_large/train'
