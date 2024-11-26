@@ -1,21 +1,22 @@
 import cv2
 
-cap = cv2.VideoCapture(0)  # Use default camera
+for i in range(2):  
+    print(f"Testing camera index {i}")
+    cap = cv2.VideoCapture(i, cv2.CAP_AVFOUNDATION)
+    if not cap.isOpened():
+        print(f"Camera index {i} not available.")
+        continue
 
-if not cap.isOpened():
-    print("Error: Unable to access the camera.")
-    exit()
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print(f"Camera index {i} is not capturing frames.")
+            break
+        
+        cv2.imshow(f"Camera Index {i}", frame)
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Error: Unable to capture a frame.")
-        break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-    cv2.imshow("Live Camera Feed", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):  # Quit on 'q'
-        break
-
-cap.release()
+    cap.release()
 cv2.destroyAllWindows()
