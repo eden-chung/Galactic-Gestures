@@ -13,7 +13,8 @@ from torchvision import models, transforms
 from torchvision.models import MobileNet_V3_Large_Weights
 import albumentations
 from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt  # Added for visualization
+from sklearn.metrics import precision_recall_fscore_support
+import matplotlib.pyplot as plt  # For visualization
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -25,10 +26,10 @@ def set_seed(seed=42):
 # Constants
 INPUT_SIZE = 224  # Input size for MobileNet V3 Large
 BATCH_SIZE = 32
-NUM_CLASSES = 5
-EPOCHS = 300  # Increased epochs to allow early stopping to take effect
+NUM_CLASSES = 300
+EPOCHS = 5  # Increased epochs to allow for better visualization
 LEARNING_RATE = 0.001
-MODEL_SAVE_PATH = 'best_model_v3.pth'
+MODEL_SAVE_PATH = 'test_model_v3_graphs_t1.pth'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Augmentations for training
@@ -131,40 +132,6 @@ def filter_invalid_annotations(dataset):
     dataset.annotations = dataset.annotations.iloc[valid_indices].reset_index(drop=True)
     return dataset
 
-# Visualization function
-def visualize_dataset_sample(dataset, idx):
-    hand_crop, label = dataset[idx]
-    
-    row = dataset.annotations.iloc[idx]
-    img_path = os.path.join(dataset.root_dir, row['image_path'])
-    image = cv2.imread(img_path)
-    
-    x_start, y_start, x_end, y_end = map(int, [row['x_start'], row['y_start'], row['x_end'], row['y_end']])
-    
-    image_with_bbox = image.copy()
-    cv2.rectangle(image_with_bbox, (x_start, y_start), (x_end, y_end), (0, 255, 0), 2)
-    image_with_bbox = cv2.cvtColor(image_with_bbox, cv2.COLOR_BGR2RGB)
-    
-    hand_crop_image = hand_crop.permute(1, 2, 0).numpy()  # Convert from (C, H, W) to (H, W, C)
-    
-    # Denormalize
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    hand_crop_image = std * hand_crop_image + mean
-    hand_crop_image = np.clip(hand_crop_image, 0, 1)
-    hand_crop_image = (hand_crop_image * 255).astype('uint8')
-    
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-    axs[0].imshow(image_with_bbox)
-    axs[0].set_title('Original Image with Bounding Box')
-    axs[0].axis('off')
-    
-    axs[1].imshow(hand_crop_image)
-    axs[1].set_title(f'Cropped Hand Region - Label: {label}')
-    axs[1].axis('off')
-    
-    plt.show()
-
 if __name__ == '__main__':
     set_seed()
 
@@ -197,15 +164,11 @@ if __name__ == '__main__':
     train_dataset = filter_invalid_annotations(train_dataset)
     val_dataset = filter_invalid_annotations(val_dataset)
 
-    print("Visualizing training samples:")
-    for idx in range(3):  
-        visualize_dataset_sample(train_dataset, idx)
+    print(f"Number of training samples: {len(train_dataset)}")
+    print(f"Number of validation samples: {len(val_dataset)}")
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-
-    print(f"Number of training samples: {len(train_dataset)}")
-    print(f"Number of validation samples: {len(val_dataset)}")
 
     weights = MobileNet_V3_Large_Weights.DEFAULT
     model = models.mobilenet_v3_large(weights=weights)
@@ -220,7 +183,17 @@ if __name__ == '__main__':
     best_val_loss = float('inf')
     best_accuracy = 0.0
     epochs_no_improve = 0
-    n_epochs_stop = 3  # Number of epochs to wait before early stopping
+    n_epochs_stop = 3  # Early stopping patience
+
+    # Lists to store metrics
+    per_class_metrics = {
+        'accuracy': {i: [] for i in range(NUM_CLASSES)},
+        'precision': {i: [] for i in range(NUM_CLASSES)},
+        'recall': {i: [] for i in range(NUM_CLASSES)},
+        'f1': {i: [] for i in range(NUM_CLASSES)},
+        'loss': []
+    }
+    epochs_list = []
 
     for epoch in range(EPOCHS):
         model.train()
@@ -249,6 +222,10 @@ if __name__ == '__main__':
         correct = 0
         total_val_samples = 0
 
+        # Variables to calculate per-class metrics
+        all_labels = []
+        all_predictions = []
+
         with torch.no_grad():
             for images, labels in val_loader:
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
@@ -262,9 +239,32 @@ if __name__ == '__main__':
                 _, predicted = torch.max(outputs, 1)
                 correct += (predicted == labels).sum().item()
 
+                all_labels.extend(labels.cpu().numpy())
+                all_predictions.extend(predicted.cpu().numpy())
+
         val_loss /= total_val_samples
         accuracy = 100 * correct / total_val_samples
         print(f"Validation Loss: {val_loss:.4f}, Accuracy: {accuracy:.2f}%")
+
+        # Calculate per-class metrics
+        precision, recall, f1, support = precision_recall_fscore_support(
+            all_labels, all_predictions, labels=range(NUM_CLASSES), zero_division=0
+        )
+
+        for i in range(NUM_CLASSES):
+            per_class_metrics['precision'][i].append(precision[i] * 100)
+            per_class_metrics['recall'][i].append(recall[i] * 100)
+            per_class_metrics['f1'][i].append(f1[i] * 100)
+            per_class_metrics['accuracy'][i].append(
+                100 * (np.array(all_predictions) == np.array(all_labels))[np.array(all_labels) == i].mean()
+            )
+
+        per_class_metrics['loss'].append(val_loss)
+        epochs_list.append(epoch + 1)
+
+        # Print per-class metrics
+        for i in range(NUM_CLASSES):
+            print(f"Class {i} - Precision: {precision[i] * 100:.2f}%, Recall: {recall[i] * 100:.2f}%, F1 Score: {f1[i] * 100:.2f}%")
 
         # Check for improvement
         if val_loss < best_val_loss:
@@ -286,3 +286,30 @@ if __name__ == '__main__':
             best_accuracy = accuracy
             torch.save(model.state_dict(), f"best_model_acc_{accuracy:.2f}.pth")
             print(f"New best model saved with accuracy: {accuracy:.2f}%")
+
+    # Plotting per-class metrics over epochs
+    metrics_to_plot = ['accuracy', 'precision', 'recall', 'f1']
+    for metric in metrics_to_plot:
+        plt.figure(figsize=(10, 7))
+        for i in range(NUM_CLASSES):
+            plt.plot(epochs_list, per_class_metrics[metric][i], label=f'Class {i}')
+        plt.xlabel('Epoch')
+        plt.ylabel(f'Validation {metric.capitalize()} (%)')
+        plt.title(f'Per-Class Validation {metric.capitalize()} over Epochs')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f'per_class_{metric}_over_epochs.png')
+        plt.close()
+
+    # Plot validation loss over epochs
+    plt.figure(figsize=(10, 7))
+    plt.plot(epochs_list, per_class_metrics['loss'], label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Validation Loss over Epochs')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('validation_loss_over_epochs.png')
+    plt.close()
+
+    print("Training complete. Per-class metrics and loss plots have been saved.")
