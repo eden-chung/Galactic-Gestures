@@ -26,7 +26,7 @@ def set_seed(seed=42):
 INPUT_SIZE = 224  # Input size for MobileNet V3 Large
 BATCH_SIZE = 32
 NUM_CLASSES = 5
-EPOCHS = 10
+EPOCHS = 50  # Increased epochs to allow early stopping to take effect
 LEARNING_RATE = 0.001
 MODEL_SAVE_PATH = 'best_model_v3.pth'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -219,6 +219,8 @@ if __name__ == '__main__':
 
     best_val_loss = float('inf')
     best_accuracy = 0.0
+    epochs_no_improve = 0
+    n_epochs_stop = 3  # Number of epochs to wait before early stopping
 
     for epoch in range(EPOCHS):
         model.train()
@@ -264,11 +266,22 @@ if __name__ == '__main__':
         accuracy = 100 * correct / total_val_samples
         print(f"Validation Loss: {val_loss:.4f}, Accuracy: {accuracy:.2f}%")
 
+        # Check for improvement
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), MODEL_SAVE_PATH)
             print(f"New best model saved with validation loss: {val_loss:.4f}")
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            print(f"No improvement in validation loss for {epochs_no_improve} epoch(s)")
 
+        # Early stopping
+        if epochs_no_improve >= n_epochs_stop:
+            print(f"Early stopping after {epoch + 1} epochs")
+            break
+
+        # Optionally, save the model based on accuracy
         if accuracy > best_accuracy:
             best_accuracy = accuracy
             torch.save(model.state_dict(), f"best_model_acc_{accuracy:.2f}.pth")
