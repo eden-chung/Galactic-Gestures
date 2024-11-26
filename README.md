@@ -6,11 +6,11 @@ We will be using [fernandozamoraj's Space Invaders](https://github.com/fernandoz
 
 ## How to play:
 
-- **Class 0: Move left**: pointing left
-- **Class 1: Move left and shoot**: pointing left and thumb up
-- **Class 2: Shoot bullets**: point up
-- **Class 3: Move right**: point right
-- **Class 4: Move right and shoot**: pointing right and thumb up
+- **Class 0, Move left**: pointing left
+- **Class 1, Move left and shoot**: pointing left and thumb up
+- **Class 2, Shoot bullets**: point up
+- **Class 3, Move right**: point right
+- **Class 4, Move right and shoot**: pointing right and thumb up
 
    
 Mobile Net Accuracy Rate RN
