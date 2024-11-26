@@ -7,8 +7,10 @@ We will be using [fernandozamoraj's Space Invaders](https://github.com/fernandoz
 ## How to play:
 
 1. **Move left**: pointing left
-2. **Move right**: point right
-3. **Shoot bullets**: point up
+2. **Move left and shoot**: pointing left and thumb up
+3. **Move right**: point right
+4. **Move right and shoot**: pointing right and thumb up
+5. **Shoot bullets**: point up
 
    
 Mobile Net Accuracy Rate RN
