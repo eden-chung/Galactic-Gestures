@@ -183,8 +183,7 @@ if __name__ == '__main__':
     best_val_loss = float('inf')
     best_accuracy = 0.0
     epochs_no_improve = 0
-<<<<<<< Updated upstream
-    n_epochs_stop = 3  # Early stopping patience
+    n_epochs_stop = 15  # Early stopping patience
 
     # Lists to store metrics
     per_class_metrics = {
