@@ -6,12 +6,12 @@ print(f"Using device: {device}")
 
 # Configuration
 data_yaml = 'data.yaml'
-model_weights = 'yolov5x.pt'
+model_weights = 'yolo_100_epochs.pt'
 img_size = 640
 batch_size = 16
-epochs = 100
+epochs = 300
 early_stopping_patience = 10
-project_dir = 'runs_large/train'
+project_dir = 'runs_large2/train'
 experiment_name = 'yolo'
 
 # Load the pre trained YOLO model

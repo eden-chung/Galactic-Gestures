@@ -183,6 +183,7 @@ if __name__ == '__main__':
     best_val_loss = float('inf')
     best_accuracy = 0.0
     epochs_no_improve = 0
+<<<<<<< Updated upstream
     n_epochs_stop = 3  # Early stopping patience
 
     # Lists to store metrics
@@ -194,6 +195,7 @@ if __name__ == '__main__':
         'loss': []
     }
     epochs_list = []
+    n_epochs_stop = 15  # Number of epochs to wait before early stopping
 
     for epoch in range(EPOCHS):
         model.train()
