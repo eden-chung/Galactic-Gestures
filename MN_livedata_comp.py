@@ -6,7 +6,7 @@ import torch.nn as nn
 
 INPUT_SIZE = 224
 NUM_CLASSES = 5
-MODEL_SAVE_PATH = 'V2_30epoch.pth'
+MODEL_SAVE_PATH = 'mn_v3_train_graph_t2_ran_on_gpu.pth'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLASS_NAMES = [f"Class {i}" for i in range(NUM_CLASSES)]
 
@@ -15,7 +15,7 @@ transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+   transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 def load_model(model_path, num_classes):

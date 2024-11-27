@@ -5,3 +5,8 @@ pillow-heif
 torch
 torchvision
 matplotlib
+ultralytics
+albumentations
+matplotlib
+opencv-python
+pygame
