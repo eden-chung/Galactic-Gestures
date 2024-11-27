@@ -21,25 +21,25 @@ for _, row in df.iterrows():
         "label": row['class_label']
     })
 # You can comment this part out if you don't want to visualize examples
-def visualize_image(row):
-    img = Image.open(row['image_path'])
-    fig, ax = plt.subplots(1)
-    ax.imshow(img)
+# def visualize_image(row):
+#     img = Image.open(row['image_path'])
+#     fig, ax = plt.subplots(1)
+#     ax.imshow(img)
 
-    # Add bounding box
-    x_start, y_start, x_end, y_end = row['x_start'], row['y_start'], row['x_end'], row['y_end']
-    width = x_end - x_start
-    height = y_end - y_start
-    rect = patches.Rectangle((x_start, y_start), width, height, linewidth=2, edgecolor='r', facecolor='none')
-    ax.add_patch(rect)
+#     # Add bounding box
+#     x_start, y_start, x_end, y_end = row['x_start'], row['y_start'], row['x_end'], row['y_end']
+#     width = x_end - x_start
+#     height = y_end - y_start
+#     rect = patches.Rectangle((x_start, y_start), width, height, linewidth=2, edgecolor='r', facecolor='none')
+#     ax.add_patch(rect)
 
-    # Add class label as title
-    plt.title(f"Class: {row['class_label']}")
-    plt.axis('off')
-    plt.show()
+#     # Add class label as title
+#     plt.title(f"Class: {row['class_label']}")
+#     plt.axis('off')
+#     plt.show()
 
-for i in range(3):
-    visualize_image(df.iloc[i])
+# for i in range(3):
+#     visualize_image(df.iloc[i])
 
 # End of commenting 
 
@@ -108,7 +108,7 @@ num_classes = df['class_label'].nunique()
 model = VisionTransformerModel(num_classes=num_classes)
 
 # Set device to MPS
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+device = torch.device("cuda" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 model.to(device)
 
@@ -164,7 +164,7 @@ def evaluate_model(model, dataloader, device):
     return classification_accuracy, mean_iou
 
 # Training loop
-epochs = 10
+epochs = 300
 for epoch in range(epochs):
     model.train()
     epoch_class_loss = 0
