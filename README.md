@@ -2,7 +2,7 @@
 
 This project involves developing a real-time gesture detection and classification algorithm to control the classic game *Space Invaders* through live video feed. We’ll design a Convolutional Neural Network (CNN) as the model architecture to accurately classify hand gesture directions, enabling intuitive, gesture-based gameplay. 
 
-We will be using [fernandozamoraj's Space Invaders](https://github.com/fernandozamoraj/processing_sandbox/tree/master/SpaceInvaders) game. We will add our real-time gesture detection model as the main input for the player's movement. 
+We will be using [Lee Robinson's Space Invaders](https://github.com/leerob/space-invaders) game, which is a PyGame implementation of Space Invaders. We add our real-time gesture detection model as the main input for the player's movement. 
 
 ## How to play:
 
