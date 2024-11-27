@@ -108,7 +108,7 @@ num_classes = df['class_label'].nunique()
 model = VisionTransformerModel(num_classes=num_classes)
 
 # Set device to MPS
-device = torch.device("cuda" if torch.backends.mps.is_available() else "cpu")
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
 model.to(device)
 
