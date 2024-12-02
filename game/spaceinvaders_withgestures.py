@@ -332,6 +332,8 @@ class Text(object):
 
 
 class SpaceInvaders(object):
+    CONFIDENCE_THRESHOLD = 0.7
+    
     def __init__(self):
         mixer.pre_init(44100, -16, 1, 4096)
         init()
@@ -404,7 +406,7 @@ class SpaceInvaders(object):
         ret, frame = self.cap.read()
         if not ret:
             print("Could not read frame")
-            return self.current_command
+            return {'left': False, 'right': False, 'shoot': False}
 
         # Since we want it to be a mirror image, we flip
         frame = cv2.flip(frame, 1)
@@ -417,10 +419,21 @@ class SpaceInvaders(object):
         # Predict what class it is
         with torch.no_grad():
             outputs = self.model(input_batch)
-            _, predicted = torch.max(outputs, 1)
-            predicted_class = predicted.item()
+            probabilities = torch.softmax(outputs, dim=1)
+            max_prob, predicted = torch.max(probabilities, 1)
+            #_, predicted = torch.max(outputs, 1)
+            #predicted_class = predicted.item()
             
-        command = self.class_to_command.get(predicted_class, {'left': False, 'right': False, 'shoot': False})
+        predicted_class = predicted.item()
+        confidence = max_prob.item()
+
+        if confidence < self.CONFIDENCE_THRESHOLD:
+            command = {'left': False, 'right': False, 'shoot': False}
+        else:
+            command = self.class_to_command.get(predicted_class, {'left': False, 'right': False, 'shoot': False})
+        
+        # print("predicted class:", predicted_class)
+        # command = self.class_to_command.get(predicted_class, {'left': False, 'right': False, 'shoot': False})
 
         # This is to show the camera feed
         cv2.putText(frame, f'Gesture: {predicted_class}', (10, 30), 
