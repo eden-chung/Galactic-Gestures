@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import torchvision.transforms as T
+from torchvision.transforms import RandAugment
 
 # Load dataset
 df = pd.read_csv('annotations.csv')
@@ -59,13 +61,14 @@ class VisionDataset(Dataset):
 
         return img, bbox, label
 
-# Data Augmentation
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+# Retrieve divese data augmentation
+transform = T.Compose([
+    T.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0)),
+    T.RandomHorizontalFlip(),
+    T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),
+    RandAugment(),  
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Dataset and DataLoader
@@ -74,7 +77,7 @@ dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 # Vision Transformer from Scratch
 class VisionTransformer(nn.Module):
-    def __init__(self, image_size=224, patch_size=16, num_classes=10, dim=768, depth=12, heads=12, mlp_dim=3072):
+    def __init__(self, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim):
         super(VisionTransformer, self).__init__()
         assert image_size % patch_size == 0, "Image size must be divisible by patch size"
         num_patches = (image_size // patch_size) ** 2
@@ -114,7 +117,8 @@ class VisionTransformer(nn.Module):
 
 # Initialize Model
 num_classes = df['class_label'].nunique()
-model = VisionTransformer(num_classes=num_classes)
+model = VisionTransformer(image_size=224, patch_size=16, num_classes=num_classes, dim=512, depth=6, heads=8, mlp_dim=2048)
+
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,7 +128,7 @@ print(f"Using device: {device}")
 # Loss Functions and Optimizer
 classification_loss_fn = nn.CrossEntropyLoss()
 bbox_loss_fn = nn.SmoothL1Loss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)
 scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, verbose=True)
 
 # IoU Calculation
@@ -187,7 +191,7 @@ for epoch in range(epochs):
         class_out, bbox_out = model(images)
         class_loss = classification_loss_fn(class_out, labels)
         bbox_loss = bbox_loss_fn(bbox_out, bboxes)
-        total_loss = class_loss + bbox_loss
+        total_loss = 0.7 * class_loss + 0.3 * bbox_loss
 
         optimizer.zero_grad()
         total_loss.backward()
