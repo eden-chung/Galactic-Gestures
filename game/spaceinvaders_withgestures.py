@@ -436,7 +436,7 @@ class SpaceInvaders(object):
         # command = self.class_to_command.get(predicted_class, {'left': False, 'right': False, 'shoot': False})
 
         # This is to show the camera feed
-        cv2.putText(frame, f'Gesture: {predicted_class}', (10, 30), 
+        cv2.putText(frame, f'Gesture: {predicted_class} (Conf: {confidence:.2f})', (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow('Gesture Control', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
