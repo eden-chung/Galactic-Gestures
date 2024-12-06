@@ -18,3 +18,20 @@ We were inspired by the traditional space invaders game. We thought creating a r
 
 The objective is to shoot all of the aliens and live! The player receives three lives and they must kill all the aliens before they die, or else they would lose. 
   
+## Installations needed:
+
+We highly recommend playing with the MobileNet model because it has the highest accuracy rate (~98%)! Every model needs different added libraries, so if you need to be wary of the specific libraries that you need. We do not recommend vision transformer at all because of the low accuracy rate (~25%) and it does not need any additional libraries installed other than the general libraries listed. 
+
+### General libraries/algorithms:
+- [SORT](https://github.com/abewley/sort)
+- Tensorflow
+- Pytorch
+- NumPy
+- Pandas
+- Matplotlib
+
+### YOLO:
+- Ultralytics
+
+### MobileNet:
+- CV2 by OpenCV
