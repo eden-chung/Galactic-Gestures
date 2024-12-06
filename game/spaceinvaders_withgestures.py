@@ -370,8 +370,8 @@ class SpaceInvaders(object):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = models.mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.DEFAULT)
-        self.model.classifier[3] = nn.Linear(self.model.classifier[3].in_features, 5)  # 5 classes
-        self.model.load_state_dict(torch.load('mn_v3_train_graph_t2_ran_on_gpu.pth', map_location=self.device)) # Use the weights that we trained
+        self.model.classifier[3] = nn.Linear(self.model.classifier[3].in_features, 6)  # 5 classes
+        self.model.load_state_dict(torch.load('mn_v3_train_graph_with_none_class.pth', map_location=self.device)) # Use the weights that we trained
         self.model.to(self.device)
         self.model.eval()
 
@@ -391,6 +391,7 @@ class SpaceInvaders(object):
             2: {'left': False, 'right': False, 'shoot': True},
             3: {'left': False, 'right': True, 'shoot': False},
             4: {'left': False, 'right': True, 'shoot': True},
+            5: {'left': False, 'right': False, 'shoot': False} # Do nothing
         }
 
         self.current_command = {'left': False, 'right': False, 'shoot': False}
