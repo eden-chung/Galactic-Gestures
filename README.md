@@ -35,3 +35,6 @@ We highly recommend playing with the MobileNet model because it has the highest 
 
 ### MobileNet:
 - CV2 by OpenCV
+
+## Demo
+![](https://github.com/eden-chung/Galactic-Gestures/demo.gif)
