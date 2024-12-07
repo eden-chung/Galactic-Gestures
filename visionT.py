@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from sklearn.model_selection import train_test_split
+import json
 
 df = pd.read_csv('annotations.csv')
 data = []
@@ -20,35 +21,6 @@ for _, row in df.iterrows():
         "bbox": [row['x_start'], row['y_start'], row['x_end'], row['y_end']],
         "label": row['class_label']
     })
-# Split dataset into training and validation sets
-train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
-
-# Define training and validation datasets
-train_dataset = VisionDataset(train_df, transform=transform)
-val_dataset = VisionDataset(val_df, transform=transform)
-
-# Define DataLoaders for training and validation
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
-
-# Output example images (feel free to comment this out)
-def visualize_image(row):
-    img = Image.open(row['image_path'])
-    fig, ax = plt.subplots(1)
-    ax.imshow(img)
-
-    x_start, y_start, x_end, y_end = row['x_start'], row['y_start'], row['x_end'], row['y_end']
-    width = x_end - x_start
-    height = y_end - y_start
-    rect = patches.Rectangle((x_start, y_start), width, height, linewidth=2, edgecolor='r', facecolor='none')
-    ax.add_patch(rect)
-
-    plt.title(f"Class: {row['class_label']}")
-    plt.axis('off')
-    plt.show()
-
-for i in range(3):
-    visualize_image(df.iloc[i])
 
 # Dataset
 class VisionDataset(Dataset):
@@ -77,6 +49,8 @@ class VisionDataset(Dataset):
             img = self.transform(img)
 
         return img, bbox, label
+# Split dataset into training and validation sets
+train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -85,6 +59,33 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
+
+# Define training and validation datasets
+train_dataset = VisionDataset(train_df, transform=transform)
+val_dataset = VisionDataset(val_df, transform=transform)
+
+# Define DataLoaders for training and validation
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+
+# Output example images (feel free to comment this out)
+def visualize_image(row):
+    img = Image.open(row['image_path'])
+    fig, ax = plt.subplots(1)
+    ax.imshow(img)
+
+    x_start, y_start, x_end, y_end = row['x_start'], row['y_start'], row['x_end'], row['y_end']
+    width = x_end - x_start
+    height = y_end - y_start
+    rect = patches.Rectangle((x_start, y_start), width, height, linewidth=2, edgecolor='r', facecolor='none')
+    ax.add_patch(rect)
+
+    plt.title(f"Class: {row['class_label']}")
+    plt.axis('off')
+    plt.show()
+
+for i in range(3):
+    visualize_image(df.iloc[i])
 
 # Dataset and dataloader
 dataset = VisionDataset(df, transform=transform)
@@ -190,6 +191,7 @@ def unfreeze_vit_layers(model, unfreeze_blocks=3):
 early_stopping_patience = 3
 early_stopping_counter = 0
 best_accuracy = 0
+results = {"classification_accuracy": [], "mean_iou": []}
 # Train custom heads
 epochs_stage1 = 10
 for epoch in range(epochs_stage1):
