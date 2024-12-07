@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from sklearn.model_selection import train_test_split
 
 df = pd.read_csv('annotations.csv')
 data = []
@@ -19,6 +20,16 @@ for _, row in df.iterrows():
         "bbox": [row['x_start'], row['y_start'], row['x_end'], row['y_end']],
         "label": row['class_label']
     })
+# Split dataset into training and validation sets
+train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
+
+# Define training and validation datasets
+train_dataset = VisionDataset(train_df, transform=transform)
+val_dataset = VisionDataset(val_df, transform=transform)
+
+# Define DataLoaders for training and validation
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
 # Output example images (feel free to comment this out)
 def visualize_image(row):
@@ -87,6 +98,9 @@ class VisionTransformerModel(nn.Module):
         self.vit.heads = nn.Identity()
         self.class_head = nn.Linear(768, num_classes)
         self.bbox_head = nn.Linear(768, 4)
+        # Fine tuning: freezing layers
+        for param in self.vit.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         x = self.vit(x)
@@ -102,14 +116,21 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f"Using device: {device}")
 model.to(device)
 
+for name, param in model.named_parameters():
+    print(f"{name}: requires_grad={param.requires_grad}")
+
 # Loss functions
 classification_loss_fn = nn.CrossEntropyLoss()
 bbox_loss_fn = nn.SmoothL1Loss()
 
-# Optimizer and scheduler
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, verbose=True)
+# Optimizer
+optimizer = optim.Adam([
+    {'params': model.class_head.parameters(), 'lr': 0.001},
+    {'params': model.bbox_head.parameters(), 'lr': 0.001},
+    {'params': filter(lambda p: p.requires_grad, model.vit.parameters()), 'lr': 0.0001}
+])
 
+scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, verbose=True)
 # IoU calculation
 def calculate_iou(pred_box, gt_box):
     x1 = max(pred_box[0], gt_box[0])
@@ -121,6 +142,8 @@ def calculate_iou(pred_box, gt_box):
     pred_area = (pred_box[2] - pred_box[0]) * (pred_box[3] - pred_box[1])
     gt_area = (gt_box[2] - gt_box[0]) * (gt_box[3] - gt_box[1])
     union = pred_area + gt_area - intersection
+    if union == 0:
+        return 0
 
     return intersection / union if union > 0 else 0
 
@@ -133,7 +156,7 @@ def evaluate_model(model, dataloader, device):
     num_samples = 0
 
     with torch.no_grad():
-        for images, bboxes, labels in dataloader:
+        for images, bboxes, labels in train_loader:
             images, bboxes, labels = images.to(device), bboxes.to(device), labels.to(device)
             class_out, bbox_out = model(images)
 
@@ -151,21 +174,59 @@ def evaluate_model(model, dataloader, device):
 
     return classification_accuracy, mean_iou
 
+# Unfreeze layers
+def unfreeze_vit_layers(model, unfreeze_blocks=3):
+    vit_blocks = list(model.vit.encoder.layer.children())
+    total_blocks = len(vit_blocks)
+
+    for i in range(total_blocks - unfreeze_blocks, total_blocks):
+        for param in vit_blocks[i].parameters():
+            param.requires_grad = True
+
+    optimizer.add_param_group({'params': filter(lambda p: p.requires_grad, model.parameters())})
+
+
 # Training loop with early stopping
 early_stopping_patience = 3
 early_stopping_counter = 0
 best_accuracy = 0
-
-# Change epoch nums
-epochs = 100
-for epoch in range(epochs):
+# Train custom heads
+epochs_stage1 = 10
+for epoch in range(epochs_stage1):
     model.train()
-    epoch_class_loss = 0
-    epoch_bbox_loss = 0
-
     for images, bboxes, labels in dataloader:
         images, bboxes, labels = images.to(device), bboxes.to(device), labels.to(device)
+        class_out, bbox_out = model(images)
+        class_loss = classification_loss_fn(class_out, labels)
+        bbox_loss = bbox_loss_fn(bbox_out, bboxes)
+        total_loss = class_loss + bbox_loss
 
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
+    # Evaluate after each epoch
+    classification_accuracy, mean_iou = evaluate_model(model, val_loader, device)
+
+    # Append metrics to results
+    results["classification_accuracy"].append(classification_accuracy)
+    results["mean_iou"].append(mean_iou)
+
+    # Log results to a JSON file
+    with open("training_metrics.json", "w") as f:
+        json.dump(results, f)
+
+    print(f"Epoch {epoch + 1}/{epochs_stage1}, "
+        f"Classification Accuracy: {classification_accuracy:.2f}%, Mean IoU: {mean_iou:.4f}")
+
+# Fine-tune full model
+unfreeze_vit_layers(model, unfreeze_blocks=3)
+optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
+
+epochs_stage2 = 20
+for epoch in range(epochs_stage2):
+    model.train()
+    for images, bboxes, labels in dataloader:
+        images, bboxes, labels = images.to(device), bboxes.to(device), labels.to(device)
         class_out, bbox_out = model(images)
         class_loss = classification_loss_fn(class_out, labels)
         bbox_loss = bbox_loss_fn(bbox_out, bboxes)
@@ -175,13 +236,8 @@ for epoch in range(epochs):
         total_loss.backward()
         optimizer.step()
 
-        epoch_class_loss += class_loss.item()
-        epoch_bbox_loss += bbox_loss.item()
-
-    classification_accuracy, mean_iou = evaluate_model(model, dataloader, device)
-    print(f"Epoch {epoch + 1}/{epochs}, Classification Loss: {epoch_class_loss:.4f}, "
-          f"BBox Loss: {epoch_bbox_loss:.4f}, Accuracy: {classification_accuracy:.2f}%, Mean IoU: {mean_iou:.4f}")
-
+    classification_accuracy, mean_iou = evaluate_model(model, val_loader, device)
+    print(f"Epoch {epoch + 1}/{epochs_stage2}, Accuracy: {classification_accuracy:.2f}%, Mean IoU: {mean_iou:.4f}")
     scheduler.step(classification_accuracy)
 
     if classification_accuracy > best_accuracy:
