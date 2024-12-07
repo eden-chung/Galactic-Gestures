@@ -193,7 +193,7 @@ early_stopping_counter = 0
 best_accuracy = 0
 results = {"classification_accuracy": [], "mean_iou": []}
 # Train custom heads
-epochs_stage1 = 10
+epochs_stage1 = 30
 for epoch in range(epochs_stage1):
     model.train()
     for images, bboxes, labels in dataloader:
@@ -224,7 +224,7 @@ for epoch in range(epochs_stage1):
 unfreeze_vit_layers(model, unfreeze_blocks=3)
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
 
-epochs_stage2 = 20
+epochs_stage2 = 60
 for epoch in range(epochs_stage2):
     model.train()
     for images, bboxes, labels in dataloader:
