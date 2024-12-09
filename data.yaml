@@ -1,7 +1,0 @@
-train: /home/EdenChung/Galactic-Gestures/augmented_dataset/images/train
-val: /home/EdenChung/Galactic-Gestures/dataset/images/train
-test: /home/EdenChung/Galactic-Gestures/dataset/images/test
-
-
-nc: 5 # 5 classes
-names: ['left', 'left_shoot', 'shoot', 'right', 'right_shoot']

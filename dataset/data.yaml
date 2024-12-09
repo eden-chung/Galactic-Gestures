@@ -1,0 +1,7 @@
+train: /Users/EdenChung/Dropbox/Uni/Semester 5/COMS-W4995/Final Project/Galactic-Gestures/augmented_dataset/images/train #/home/EdenChung/Galactic-Gestures/augmented_dataset/images/train
+val: /Users/EdenChung/Dropbox/Uni/Semester 5/COMS-W4995/Final Project/Galactic-Gestures/dataset/images/train #/home/EdenChung/Galactic-Gestures/dataset/images/train
+test: /Users/EdenChung/Dropbox/Uni/Semester 5/COMS-W4995/Final Project/Galactic-Gestures/dataset/images/test #/home/EdenChung/Galactic-Gestures/dataset/images/test
+
+
+nc: 5 # 5 classes
+names: ['left', 'left_shoot', 'shoot', 'right', 'right_shoot']
