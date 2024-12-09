@@ -1,4 +1,3 @@
-from transformers import AutoImageProcessor, ViTForImageClassification
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
@@ -49,7 +48,8 @@ class VisionDataset(Dataset):
             img = self.transform(img)
 
         return img, bbox, label
-# Split dataset into training and validation sets
+
+# Split into 80%/20%
 train_df, val_df = train_test_split(df, test_size=0.2, random_state=42)
 
 transform = transforms.Compose([
@@ -60,19 +60,15 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-# Define training and validation datasets
 train_dataset = VisionDataset(train_df, transform=transform)
 val_dataset = VisionDataset(val_df, transform=transform)
 
-# Define DataLoaders for training and validation
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-# Dataset and dataloader
 dataset = VisionDataset(df, transform=transform)
 dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
-# Vision Transformer Model
 class VisionTransformerModel(nn.Module):
     def __init__(self, num_classes):
         super(VisionTransformerModel, self).__init__()
@@ -158,91 +154,51 @@ def evaluate_model(model, dataloader, device):
     return classification_accuracy, mean_iou
 
 
-# # Training loop with early stopping
-# early_stopping_patience = 10
-# early_stopping_counter = 0
-# best_accuracy = 0
-# results = {"classification_accuracy": [], "mean_iou": []}
+# Training loop with early stopping
+early_stopping_patience = 10
+early_stopping_counter = 0
+best_accuracy = 0
+results = {"classification_accuracy": [], "mean_iou": []}
 
-# # Fine tune model
-# epochs_stage1 = 100
-# for epoch in range(epochs_stage1):
-#     model.train()
-#     for images, bboxes, labels in dataloader:
-#         images, bboxes, labels = images.to(device), bboxes.to(device), labels.to(device)
-#         class_out, bbox_out = model(images)
-#         class_loss = classification_loss_fn(class_out, labels)
-#         bbox_loss = bbox_loss_fn(bbox_out, bboxes)
-#         total_loss = class_loss + bbox_loss
+# Fine tune model
+epochs_stage1 = 100
+for epoch in range(epochs_stage1):
+    model.train()
+    for images, bboxes, labels in dataloader:
+        images, bboxes, labels = images.to(device), bboxes.to(device), labels.to(device)
+        class_out, bbox_out = model(images)
+        class_loss = classification_loss_fn(class_out, labels)
+        bbox_loss = bbox_loss_fn(bbox_out, bboxes)
+        total_loss = class_loss + bbox_loss
 
-#         optimizer.zero_grad()
-#         total_loss.backward()
-#         optimizer.step()
-#     # Evaluate after each epoch
-#     classification_accuracy, mean_iou = evaluate_model(model, val_loader, device)
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
 
-#     # Append metrics to results
-#     results["classification_accuracy"].append(classification_accuracy)
-#     results["mean_iou"].append(mean_iou)
+    classification_accuracy, mean_iou = evaluate_model(model, val_loader, device)
 
-#     # Log results to a JSON file
-#     with open("training_metrics.json", "w") as f:
-#         json.dump(results, f)
+    results["classification_accuracy"].append(classification_accuracy)
+    results["mean_iou"].append(mean_iou)
 
-#     print(f"Epoch {epoch + 1}/{epochs_stage1}, "
-#         f"Classification Accuracy: {classification_accuracy:.2f}%, Mean IoU: {mean_iou:.4f}")
+    # Add to a JSON file
+    with open("training_metrics.json", "w") as f:
+        json.dump(results, f)
+
+    print(f"Epoch {epoch + 1}/{epochs_stage1}, "
+        f"Classification Accuracy: {classification_accuracy:.2f}%, Mean IoU: {mean_iou:.4f}")
     
-#     if classification_accuracy > best_accuracy:
-#         best_accuracy = classification_accuracy
-#         torch.save(model.state_dict(), 'best_model_visionT.pth')
-#         print(f"Saved model")
+    if classification_accuracy > best_accuracy:
+        best_accuracy = classification_accuracy
+        torch.save(model.state_dict(), 'best_model_visionT.pth')
+        print(f"Saved model")
 
-#         early_stopping_counter = 0
-#     else:
-#         early_stopping_counter += 1
+        early_stopping_counter = 0
+    else:
+        early_stopping_counter += 1
 
-#     if early_stopping_counter >= early_stopping_patience:
-#         print("Early stopping")
-#         break
+    if early_stopping_counter >= early_stopping_patience:
+        print("Early stopping")
+        break
 
 model.load_state_dict(torch.load('best_model_visionT.pth', map_location=torch.device('cpu')))
 print("Saved as best_model_visionT.pth")
-
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import numpy as np
-
-CLASS_NAMES = ["left", "left_shoot", "shoot", "right", "right_shoot"]
-
-def evaluate_test_set(model, test_loader, device):
-    """Evaluates the model on the test set and returns true and predicted labels."""
-    model.eval()
-    true_labels = []
-    pred_labels = []
-
-    with torch.no_grad():
-        for images, bboxes, labels in test_loader:
-            images, labels = images.to(device), labels.to(device)
-            class_out, _ = model(images)
-            _, predicted = torch.max(class_out, 1)
-
-            true_labels.extend(labels.cpu().numpy())
-            pred_labels.extend(predicted.cpu().numpy())
-
-    return np.array(true_labels), np.array(pred_labels)
-
-true_labels, pred_labels = evaluate_test_set(model, val_loader, device)
-
-valid_indices = (true_labels < 5) & (pred_labels < 5)
-true_labels = true_labels[valid_indices]
-pred_labels = pred_labels[valid_indices]
-
-# Compute the confusion matrix
-conf_matrix = confusion_matrix(true_labels, pred_labels, labels=range(5))
-
-conf_matrix_normalized = conf_matrix.astype('float') / conf_matrix.sum(axis=1, keepdims=True)
-
-# Display the confusion matrix
-disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix_normalized, display_labels=CLASS_NAMES)
-disp.plot(cmap=plt.cm.Blues, values_format=".2f")
-plt.title("Normalized Confusion Matrix")
-plt.show()

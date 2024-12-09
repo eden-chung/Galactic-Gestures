@@ -24,7 +24,7 @@ def set_seed(seed=42):
         torch.cuda.manual_seed_all(seed)
 
 # Constants
-INPUT_SIZE = 224  # Input size for MobileNet V3 Large
+INPUT_SIZE = 224 # Input size for MobileNet V3 Large
 BATCH_SIZE = 32
 NUM_CLASSES = 5
 EPOCHS = 300  # Increased epochs to allow for better visualization
