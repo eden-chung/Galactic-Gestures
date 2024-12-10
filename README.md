@@ -20,7 +20,7 @@ The objective is to shoot all of the aliens and live! The player receives three 
   
 ## Installations needed:
 
-We highly recommend playing with the MobileNet model because it has the highest accuracy rate (~98%)! Every model needs different added libraries, so if you need to be wary of the specific libraries that you need. We do not recommend vision transformer at all because of the low accuracy rate (~25%) and it does not need any additional libraries installed other than the general libraries listed. 
+We highly recommend playing with the MobileNet model because it has the highest accuracy rate (~98%)! Every model needs different added libraries, so if you need to be wary of the specific libraries that you need.
 
 ### General libraries/algorithms:
 - [SORT](https://github.com/abewley/sort)
